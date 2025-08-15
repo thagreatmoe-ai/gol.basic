@@ -1,7 +1,11 @@
 // GoL Modern v6.5 — side-by-side header, iOS toggles, safe renders
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
-const todayKey = () => new Date().toISOString().slice(0,10);
+// Local (device) date in YYYY-MM-DD — avoids UTC slipping past midnight
+const todayKey = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // shift to local time
+  return d.toISOString().slice(0,10);
 const uid = () => Math.random().toString(36).slice(2,10);
 
 function save(){ localStorage.setItem('gol64', JSON.stringify(state)); }
@@ -44,7 +48,9 @@ let state = Object.assign({}, defaultState, load());
 
 applyTheme(state.theme);
 rolloverIfNeeded();
-
+// Re-check the date automatically while the app is open / when returning
+document.addEventListener('visibilitychange', rolloverIfNeeded);
+setInterval(rolloverIfNeeded, 60 * 1000); // check once a minute
 // Keep the day in sync if the app stays open or when returning to the app
 document.addEventListener('visibilitychange', () => rolloverIfNeeded());
 
