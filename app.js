@@ -45,6 +45,15 @@ let state = Object.assign({}, defaultState, load());
 applyTheme(state.theme);
 rolloverIfNeeded();
 
+// Keep the day in sync if the app stays open or when returning to the app
+document.addEventListener('visibilitychange', () => rolloverIfNeeded());
+
+// Re-check once a minute so midnight flips without interaction
+// (guarded so we don't create multiple intervals)
+if (!window.__rolloverTicker) {
+  window.__rolloverTicker = setInterval(rolloverIfNeeded, 60 * 1000);
+}
+
 // THEME
 function applyTheme(t){
   const r = document.documentElement;
