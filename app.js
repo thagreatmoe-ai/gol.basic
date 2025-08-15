@@ -6,6 +6,7 @@ const todayKey = () => {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // shift to local time
   return d.toISOString().slice(0,10);
+  };
 const uid = () => Math.random().toString(36).slice(2,10);
 
 function save(){ localStorage.setItem('gol64', JSON.stringify(state)); }
