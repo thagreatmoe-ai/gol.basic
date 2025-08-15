@@ -879,7 +879,34 @@ window.addEventListener('DOMContentLoaded', ()=>{
     save(); renderHeader();
     showToast('Profile saved', 'ok');
   });
+// Add Reward from Profile → Shop card
+$('#btnAddReward')?.addEventListener('click', ()=>{
+  const nameEl = $('#rewardName');
+  const costEl = $('#rewardCost');
+  const typeEl = $('#rewardType');
 
+  const name = nameEl?.value.trim();
+  const cost = Number(costEl?.value || 0);
+  const type = typeEl?.value || 'irl';
+
+  if (!name) { alert('Please enter a reward name.'); return; }
+  if (!(cost > 0)) { alert('Cost must be a positive number.'); return; }
+
+  state.rewards.push({
+    id: uid(),
+    name,
+    cost: Math.round(cost),
+    type
+  });
+
+  save();
+  renderShop();        // refresh the list in the Profile card
+
+  // clear inputs (optional)
+  if (nameEl) nameEl.value = '';
+  if (costEl) costEl.value = '10';
+  if (typeEl) typeEl.value = 'irl';
+});
   // Focus session (toggle only; no preset buttons)
   let timer=null, left=0;
   const sessToggle = $('#sessToggle');
