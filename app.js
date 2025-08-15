@@ -924,7 +924,23 @@ window.addEventListener('DOMContentLoaded', ()=>{
     state.fields.forEach(f=>{ f.level=1; f.xp=0; });
     save(); renderAll(); alert('Prestiged!');
   });
+// Fields – add new field from Stats card
+$('#btnAddField')?.addEventListener('click', ()=>{
+  const inp = $('#fieldName');
+  const name = inp?.value.trim() || '';
+  if (!name) { alert('Enter a field name'); return; }
 
+  // make sure fields array exists
+  state.fields = state.fields || [];
+
+  // add the field
+  state.fields.push({ id: uid(), name, level: 1, xp: 0 });
+
+  // clear, save, and re-render
+  if (inp) inp.value = '';
+  save();
+  renderAll();         // updates the Fields card immediately
+});
   // Floating +Task FAB
   const fab = document.getElementById('fabAddTask');
 if (fab){
