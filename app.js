@@ -34,16 +34,22 @@ function showToast(msg, type = 'ok'){
 
 // Defaults
 const DEFAULT_LEVELS = [200,300,400,500,600,800,1000,1200,1400,1600,1900,2200,2500];
+// defaults (snippet) — add bgImage to theme
 const defaultState = {
-  user:{name:'Mohammed', avatarStage:0, prestigeBonus:0},
-  theme:{bg:'#0b0f1a', panel:'#12172a', card:'#18203a', text:'#f4f7ff', muted:'#a6b0d6', accent:'#7b8cff', accent2:'#38d39f', danger:'#ff6b6b', border:'#253055'},
+  user:{name:'Mohammed', avatarStage:0, prestige:0},
+  theme:{
+    bg:'#0b0f1a',      // can be a color OR a CSS gradient string
+    bgImage:'',        // data URL of a chosen photo, or '' for none
+    panel:'#12172a',
+    card:'#1a2238'
+  },
   levels:DEFAULT_LEVELS,
   config:{staminaLimit:500,resistHourBonus:15},
   streak:{d:0,protected:false},
   xp:0, level:1, tokens:0,
-  day:{date:todayKey(), resistance:false, pointsToday:0},
-  fields:[{id:'studying',name:'Studying',xp:0,level:1},{id:'work',name:'Work',xp:0,level:1}],
-  tasks:[], titles:[], rewards:[], history:[], templates:[]
+  day:{date:todayKey(), resistance:false, points:0},
+  fields:[{id:'studying',name:'Studying',xp:0,level:1}],
+  tasks:[], titles:[], rewards:[], history:[]
 };
 let state = Object.assign({}, defaultState, load());
 
@@ -57,9 +63,19 @@ if (!window.__rolloverTicker) {
 }
 
 // THEME
+// apply theme (replacement)
 function applyTheme(t){
   const r = document.documentElement;
-  for(const k in t) r.style.setProperty('--'+k, t[k]);
+
+  // set all simple vars (bg, panel, card, etc.)
+  for(const k in t){
+    if (k === 'bgImage') continue;         // handle below
+    r.style.setProperty('--'+k, t[k]);
+  }
+
+  // background image handled via dedicated var
+  const img = t.bgImage && t.bgImage.trim() ? `url(${t.bgImage})` : 'none';
+  r.style.setProperty('--bg-image', img);
 }
 
 // --- rollover & penalties ---
@@ -1000,3 +1016,6 @@ if (fab){
 // Utils
 function openSheet(html){ const s=$('#sheet'); s.innerHTML=html; s.classList.add('open'); }
 function closeSheet(){ $('#sheet').classList.remove('open'); document.body.classList.remove('addMode'); }
+function _toHexOrDefault(v){
+  return (typeof v==='string' && v.startsWith('#') && (v.length===7||v.length===4)) ? v : '#0b0f1a';
+}
