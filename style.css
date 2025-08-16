@@ -603,3 +603,28 @@ body{
   border: 1px solid rgba(255,255,255,.06);
   box-shadow: 0 12px 24px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.03);
 }
+/* ---- Pin tab bar flush to the very bottom (cover the safe area) ---- */
+
+/* Let the page content reserve only the visible tab height (not the safe area).
+   The tab bar itself will include the safe-area inset. */
+body{
+  padding-bottom: var(--tabbar-h) !important;
+}
+
+/* Make the tab bar extend all the way to the screen edge and paint under
+   the home indicator by adding the safe-area to its own height. */
+#tabbar{
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)) !important;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  bottom: 0; left: 0; right: 0;
+}
+
+/* Extra safety: if some older CSS elsewhere still draws a spacer, kill it. */
+.safe-bottom, .safe-area-spacer, .ios-bottom-spacer{
+  display: none !important;
+}
+
+/* Optional: if a browser doesn’t support env(), fall back gracefully */
+@supports not (padding-bottom: env(safe-area-inset-bottom)){
+  #tabbar{ height: var(--tabbar-h) !important; padding-bottom: 0 !important; }
+}
