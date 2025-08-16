@@ -49,8 +49,7 @@ html, body, main, .view { overflow-x:hidden; }
 /* -------- Top bar -------- */
 .topbar{
 position:sticky; top:0; z-index:30;
-display:flex; align-items:center; gap:12px;
-padding:calc(env(safe-area-inset-top) + 8px) var(--space-4) var(--space-3);
+display:flex; align-items:center; gap:12px;padding:calc(env(safe-area-inset-top) + 8px) var(--space-4) var(--space-3);
 background:rgba(15,21,48,.8);
 backdrop-filter:blur(12px);
 -webkit-backdrop-filter:blur(12px);
@@ -101,8 +100,7 @@ border-color:transparent;
 .item{ position:relative; }
 .item::before{
 content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
-background:linear-gradient(180deg,var(--accent),#9aa7ﬀ);
-border-top-left-radius:var(--radius-lg); border-bottom-left-radius:var(--radius-lg);
+background:linear-gradient(180deg,var(--accent),#9aa7ﬀ);border-top-left-radius:var(--radius-lg); border-bottom-left-radius:var(--radius-lg);
 opacity:.7;
 }
 .item.done,.item.skipped,.item.postponed{ opacity:.6; }
@@ -155,8 +153,7 @@ text-align:left;
 padding:8px;
 font-size:13px;
 vertical-align: middle;
-}
-/* Long-press “expanded” action row that appears under the tapped row */
+}/* Long-press “expanded” action row that appears under the tapped row */
 .hist-row{} /* marker class for main rows */
 .hist-undo{ display:none; background:rgba(255,255,255,.03); }
 .hist-undo td{
@@ -208,8 +205,7 @@ border-top:1px solid var(--border);
 }
 #tabbar .tab{ color:var(--muted); text-decoration:none; min-width:44px; min-height:44px;
 display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
-#tabbar .tab svg{ width:22px; height:22px; }
-#tabbar .tab.active{ color:#ﬀf; }
+#tabbar .tab svg{ width:22px; height:22px; }#tabbar .tab.active{ color:#ﬀf; }
 #tabbar .tab.active svg path{ fill:var(--accent); }
 /* -------- Toast -------- */
 #toast{
@@ -263,8 +259,7 @@ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; ma
 #todayTasks .item .summary .spacer{ flex:1; }
 #todayTasks .item .summary .count{ margin-left:auto; font-weight:700; opacity:.9; }
 #todayTasks .item .bar{ height:6px; background:rgba(255,255,255,.06); border-radius:999px;
-margin-top:8px; }
-#todayTasks .item .bar .fill{ height:100%; width:0; background:var(--accent); border-radius:999px;
+margin-top:8px; }#todayTasks .item .bar .fill{ height:100%; width:0; background:var(--accent); border-radius:999px;
 transition:width .3s ease; }
 #todayTasks .item .details{ display:none; margin-top:12px; }
 #todayTasks .item.open .details{ display:block; }
@@ -316,8 +311,7 @@ display:flex; flex-direction:column; gap:10px;
 }
 #quickCard{
 display:flex; flex-direction:column; gap:10px;
-}
-/* Hide secondary label next to switches (you said toggle UI is obvious) */
+}/* Hide secondary label next to switches (you said toggle UI is obvious) */
 .switch .switch-label{ display:none; }
 /* -------- iOS-style switch (used for Resistance & Session) -------- */
 .switch{ position:relative; display:inline-block; width:52px; height:30px; }
@@ -368,8 +362,7 @@ box-sizing: border-box;
 }
 /* Hide existing-task list/cards inside the sheet when launched via FAB (add-only mode) */
 .addMode #sheet .list { display: none !important; }
-.addMode #sheet .item { display: none !important; }
-/* Quick Session: keep switch and timer on one line and card height stable */
+.addMode #sheet .item { display: none !important; }/* Quick Session: keep switch and timer on one line and card height stable */
 #quickCard .sess-row{
 display:flex;
 align-items:center;
@@ -420,8 +413,7 @@ If you want it tighter, you can use just env(safe-area-inset-top) */
 #backdrop{ z-index: 998 !important; }
 #drawer { z-index: 999 !important; }
 /* Ensure the drawer starts at the very top and respects the notch padding */
-#drawer{
-top: 0; /* already present but reaﬃrm */
+#drawer{top: 0; /* already present but reaﬃrm */
 padding-top: env(safe-area-inset-top);
 }
 /* Optional: make sure the drawer’s backdrop intercepts taps across the header too */
@@ -471,8 +463,7 @@ width:18px; height:18px; /* icons scale with the slimmer bar */
 gap:0; min-width:64px; /* no space reserved for labels */
 /* keep big touch targets */
 }
-/* hide the text labels */
-#tabbar .tab > span{
+/* hide the text labels */#tabbar .tab > span{
 display:none;
 }
 /* make icons a touch bigger if you like */
@@ -525,8 +516,7 @@ transform: translateY(100%); /* render it just below the bar */
 --bg-size: cover;
 --bg-pos: center center;
 --bg-attach: fixed;
-}
-/* Ensure image layers with the color/gradient underneath */
+}/* Ensure image layers with the color/gradient underneath */
 body{
 background: var(--bg); background-image: var(--bg-image); background-size: var(--bg-size);
 background-position: var(--bg-pos);
@@ -579,8 +569,7 @@ display: none !important;
 body{
 /* Reserve only the visible bar height for page content (no extra safe-area gap) */
 padding-bottom: var(--tabbar-h) !important;
-}
-#tabbar{
+}#tabbar{
 /* Keep the same visual height; do NOT grow for the safe area */
 height: var(--tabbar-h) !important;
 padding-bottom: 0 !important;
@@ -632,8 +621,7 @@ z-index:5;
 #xpStrip{
 margin: 10px 16px 12px;
 height: 18px;
-border-radius: 999px;
-background: rgba(255,255,255,.08);
+border-radius: 999px;background: rgba(255,255,255,.08);
 overflow: hidden;
 }
 #xpStrip .fill{
@@ -685,8 +673,7 @@ between top cards and Today’s Tasks stays unchanged */
 margin-top: 8px !important; padding-top: 0 !important; /* << shrink the space here */
 /* guard against padding from earlier styles */
 }
-/* make sure the first card isn’t adding its own top margin */
-#xpRibbon + .top-split > .card:first-child,
+/* make sure the first card isn’t adding its own top margin */#xpRibbon + .top-split > .card:first-child,
 #xpRibbon + .top-split > *:first-child{
 margin-top: 0 !important;
 }
