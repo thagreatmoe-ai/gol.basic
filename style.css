@@ -628,3 +628,27 @@ body{
 @supports not (padding-bottom: env(safe-area-inset-bottom)){
   #tabbar{ height: var(--tabbar-h) !important; padding-bottom: 0 !important; }
 }
+/* --- Force tab bar flush to device bottom without changing its height --- */
+body{
+  /* Reserve only the visible bar height for page content (no extra safe-area gap) */
+  padding-bottom: var(--tabbar-h) !important;
+}
+
+#tabbar{
+  /* Keep the same visual height; do NOT grow for the safe area */
+  height: var(--tabbar-h) !important;
+  padding-bottom: 0 !important;
+
+  /* Push the whole bar down into the safe-area so it sits at the very bottom */
+  bottom: calc(0px - env(safe-area-inset-bottom)) !important;
+}
+
+/* If any other spacer was added, kill it */
+.safe-bottom, .safe-area-spacer, .ios-bottom-spacer{
+  display: none !important;
+}
+
+/* Fallback for browsers without env() support (does nothing harmful) */
+@supports not (padding-bottom: env(safe-area-inset-bottom)){
+  #tabbar{ bottom: 0 !important; }
+}
