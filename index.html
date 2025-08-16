@@ -68,51 +68,51 @@
       <section id="view-today" class="view active">
 
         <!-- Top split: Resistance + Quick Session (side-by-side) -->
-        <div class="top-split">
+<div class="top-split">
+  <!-- Resistance ------------------------------------------------>
+  <div class="card glass compact" id="resistCard">
+    <h2 style="font-size:var(--h2); margin:0 0 8px">Resistance</h2>
 
-          <!-- Resistance ------------------------------------------------>
-          <div class="card glass compact" id="resistCard">
-            <h2 style="font-size:var(--h2); margin:0 0 8px">Resistance</h2>
-
-            <!-- iOS-style toggle -->
-            <label class="switch" aria-label="Resistance toggle">
-              <input id="resistToggle" type="checkbox">
-              <span class="slider"></span>
-            </label>
-
-            <button id="btnProtect" class="btn alt" type="button" style="margin-top:8px">
-              Protect streak today
-            </button>
-</div><!-- end #resistCard -->
-          <!-- Quick Session -->
-<div class="card glass compact" id="quickCard">
-  <h2 style="font-size:var(--h2); margin:0 0 8px">Quick Session</h2>
-
-  <label class="stack small" style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
-    <span style="font-size:var(--small); color:var(--muted)">Custom mins</span>
-    <input id="customMin" class="input" placeholder="20" inputmode="numeric">
-  </label>
-
-  <!-- Switch + timer on the same row -->
-  <div class="sess-row">
-    <label class="switch">
-      <input id="sessToggle" type="checkbox" aria-label="Start/Stop session">
+    <!-- iOS-style toggle -->
+    <label class="switch" aria-label="Resistance toggle">
+      <input id="resistToggle" type="checkbox">
       <span class="slider"></span>
     </label>
 
-    <div id="timerBox" class="sub small">Session stopped.</div>
-  </div>
-</div>
-</div>
+    <button id="btnProtect" class="btn alt" type="button" style="margin-top:8px">
+      Protect streak today
+    </button>
+  </div><!-- end #resistCard -->
+
+  <!-- Quick Session -------------------------------------------->
+  <div class="card glass compact" id="quickCard">
+    <h2 style="font-size:var(--h2); margin:0 0 8px">Quick Session</h2>
+
+    <label class="stack small" style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
+      <span style="font-size:var(--small); color:var(--muted)">Custom mins</span>
+      <input id="customMin" class="input" placeholder="20" inputmode="numeric">
+    </label>
+
+    <!-- Switch + timer on the same row -->
+    <div class="sess-row">
+      <label class="switch">
+        <input id="sessToggle" type="checkbox" aria-label="Start/Stop session">
+        <span class="slider"></span>
+      </label>
+
+      <div id="timerBox" class="sub small">Session stopped.</div>
+    </div>
+  </div><!-- end #quickCard -->
 </div><!-- end .top-split -->
-        <!-- Today’s tasks ---------------------------------------------->
-        <div class="card">
-          <div class="row-between">
-            <h3>Today’s Tasks</h3>
-            <button class="btn alt" id="btnAddTask" type="button">+ Task</button>
-          </div>
-          <div id="todayTasks" class="list"></div>
-        </div>
+
+<!-- Today’s tasks ---------------------------------------------->
+<div class="card" id="todayCard">
+  <div class="row-between">
+    <h3>Today’s Tasks</h3>
+    <button class="btn alt" id="btnAddTask" type="button">+ Task</button>
+  </div>
+  <div id="todayTasks" class="list"></div>
+</div>
       </section>
 
       <!-- Stats view --------------------------------------------------->
