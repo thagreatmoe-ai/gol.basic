@@ -703,3 +703,13 @@ body, #app, #views, .view{
   transition: width .3s ease;
   background: linear-gradient(90deg, var(--accent, #7aa8ff), #4b6cff);
 }
+/* ===== Force tabbar flush to bottom & keep original height ===== */
+#tabbar{
+  height: var(--tabbar-h) !important;
+  padding-bottom: 0 !important;
+}
+
+#views, main, .view{
+  /* leave a tiny cushion so content doesn't sit under the bar */
+  padding-bottom: calc(var(--tabbar-h) + 8px) !important;
+}
