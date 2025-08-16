@@ -824,6 +824,91 @@ function openTheme(){
   $('#btnThemeSave').onclick=()=>{ Object.keys(t).forEach(k=> t[k] = $('#clr_'+k).value); applyTheme(t); save(); alert('Theme saved'); };
   $('#btnThemeReset').onclick=()=>{ state.theme=JSON.parse(JSON.stringify(defaultState.theme)); applyTheme(state.theme); save(); Object.keys(state.theme).forEach(k=>{ const el=$('#clr_'+k); if(el) el.value=state.theme[k]; }); alert('Theme reset'); };
 }
+function openBackground(){
+  const curBG   = state.theme.bg || '#0b0f1a';
+  const curGrad = curBG.startsWith('linear-gradient') ? curBG : '';
+  openSheet(`
+    <div class="row-between">
+      <h3>Background</h3>
+      <button class="btn alt small" id="closeSheet">Close</button>
+    </div>
+
+    <div class="row wrap gap8" style="margin:8px 0" id="bgPresets">
+      ${[
+        {label:'Default Indigo',  val:'#0b0f1a'},
+        {label:'Midnight',        val:'#0a0d18'},
+        {label:'Deep Gradient',   val:'linear-gradient(180deg,#0b0f1a 0%, #12172a 100%)'},
+        {label:'Aurora',          val:'linear-gradient(135deg,#0b0f1a 0%, #1f2a52 50%, #0b0f1a 100%)'}
+      ].map(p=>`<button class="chip" data-bg="${p.val}">${p.label}</button>`).join('')}
+    </div>
+
+    <div class="row gap8">
+      <label class="stack small" style="min-width:120px">
+        <span>Solid color</span>
+        <input type="color" id="bgColor" class="input small" value="${_toHexOrDefault(curBG)}">
+      </label>
+      <label class="stack small grow">
+        <span>Gradient (CSS)</span>
+        <input id="bgGrad" class="input" placeholder="linear-gradient(...)" value="${curGrad}">
+      </label>
+    </div>
+
+    <div class="row gap8" style="margin-top:8px">
+      <label class="stack small grow">
+        <span>Use a photo (optional)</span>
+        <input id="bgImage" type="file" accept="image/*" class="input">
+      </label>
+      <button class="btn alt" id="bgReset">Reset</button>
+      <button class="btn" id="bgApply">Apply</button>
+    </div>
+  `);
+
+  $('#closeSheet').onclick = closeSheet;
+
+  // Presets
+  $$('#bgPresets .chip').forEach(b=>{
+    b.onclick = ()=>{
+      state.theme.bg = b.dataset.bg;
+      state.theme.bgImage = '';
+      save(); applyTheme(state.theme);
+    };
+  });
+
+  // Solid color live preview
+  $('#bgColor').oninput = e=>{
+    state.theme.bg = e.target.value;
+    state.theme.bgImage = '';
+    save(); applyTheme(state.theme);
+  };
+
+  // Gradient apply on change/blur
+  $('#bgGrad').addEventListener('change', e=>{
+    const v = e.target.value.trim();
+    if (v) { state.theme.bg = v; state.theme.bgImage=''; save(); applyTheme(state.theme); }
+  });
+
+  // Local photo → dataURL
+  $('#bgImage').onchange = e=>{
+    const f = e.target.files?.[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      state.theme.bgImage = rd.result;
+      save(); applyTheme(state.theme);
+    };
+    rd.readAsDataURL(f);
+  };
+
+  // Reset to stock
+  $('#bgReset').onclick = ()=>{
+    state.theme.bg = '#0b0f1a';
+    state.theme.bgImage = '';
+    save(); applyTheme(state.theme);
+  };
+
+  // Just close; everything already saved
+  $('#bgApply').onclick = closeSheet;
+}
 function openBackup(){
   openSheet(`<div class="row-between"><h3>Backup</h3><button class="btn alt small" id="closeSheet">Close</button></div>
     <div class="row gap8"><button class="btn alt" id="btnExport">Export JSON</button>
