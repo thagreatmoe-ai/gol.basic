@@ -592,3 +592,14 @@ body{
   font-size:13px;
 }
 #sheet .row.wrap{ flex-wrap: wrap; }
+/* ---- Make the big "Today's Tasks" card translucent like the small cards ---- */
+/* Use whichever selector matches your markup; leaving all three is fine. */
+#view-today #tasksCard,
+#view-today .card.tasksCard,
+#view-today .card[data-section="tasks"]{
+  background: rgba(15,21,48,.64);              /* same family as .card.glass */
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 12px 24px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.03);
+}
