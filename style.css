@@ -713,3 +713,31 @@ body, #app, #views, .view{
   /* leave a tiny cushion so content doesn't sit under the bar */
   padding-bottom: calc(var(--tabbar-h) + 8px) !important;
 }
+/* ===== Compact XP ribbon: make it as tall as the section gap ===== */
+:root{
+  /* Use the same gap the layout already uses between sections. 
+     If you already have a variable for this, keep your value. */
+  --section-gap: 18px;
+}
+
+/* Keep the XP ribbon height equal to the normal section spacing. */
+#xpRibbon{
+  height: var(--section-gap);
+  margin: 0;             /* no extra vertical margin */
+  padding: 0;            /* remove vertical padding so it doesn't get taller */
+  display: flex;
+  align-items: center;   /* centers the bar within this compact height */
+}
+
+/* Slim progress rail; only side padding so the bar doesn’t touch edges. */
+#xpRibbon .bar{
+  height: 6px;           /* thin bar */
+  margin: 0 12px;        /* horizontal breathing room only */
+}
+
+/* Ensure there is no extra margin added above the cards. */
+.top-split{
+  margin-top: 0;         /* the XP ribbon itself provides the spacing */
+  /* keep your existing margin-bottom (usually ~18px) so spacing
+     between top cards and Today’s Tasks stays unchanged */
+}
