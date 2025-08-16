@@ -692,7 +692,7 @@ body, #app, #views, .view{
 /* ===== XP strip under header ===== */
 #xpStrip{
   margin: 10px 16px 12px;
-  height: 6px;
+  height: 18px;
   border-radius: 999px;
   background: rgba(255,255,255,.08);
   overflow: hidden;
