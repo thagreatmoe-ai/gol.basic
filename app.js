@@ -9,7 +9,10 @@ const todayKey = () => {
   };
 const uid = () => Math.random().toString(36).slice(2,10);
 
-function save(){ localStorage.setItem('gol64', JSON.stringify(state)); }
+function save(){
+  localStorage.setItem('gol64', JSON.stringify(state));
+  if (typeof updateXpStrip === 'function') updateXpStrip();
+}
 function load(){
   try{
     const a = localStorage.getItem('gol64')
@@ -55,6 +58,7 @@ let state = Object.assign({}, defaultState, load());
 
 applyTheme(state.theme);
 rolloverIfNeeded();
+updateXpStrip();   // <— add this line
 // Keep the day in sync while the app is open/visible
 document.addEventListener('visibilitychange', rolloverIfNeeded);
 
@@ -1103,4 +1107,13 @@ function openSheet(html){ const s=$('#sheet'); s.innerHTML=html; s.classList.add
 function closeSheet(){ $('#sheet').classList.remove('open'); document.body.classList.remove('addMode'); }
 function _toHexOrDefault(v){
   return (typeof v==='string' && v.startsWith('#') && (v.length===7||v.length===4)) ? v : '#0b0f1a';
+}
+function updateXpStrip(){
+  const bar = document.querySelector('#xpStrip .fill');
+  if (!bar) return;
+
+  // Assume state.xp is current XP within the level and state.levels holds per-level caps
+  const needed = state.levels?.[state.level - 1] || 1;
+  const pct = Math.max(0, Math.min(100, (state.xp / needed) * 100));
+  bar.style.width = pct + '%';
 }
