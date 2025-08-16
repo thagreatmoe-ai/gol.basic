@@ -566,3 +566,29 @@ body{
   pointer-events: none;         /* that area is not tappable on iOS anyway */
   transform: translateY(100%);  /* render it just below the bar */
 }
+/* ===== Customizable page background (color/gradient/photo) ===== */
+:root{
+  --bg-image: none;          /* set by JS via applyTheme() */
+  --bg-size: cover;
+  --bg-pos: center center;
+  --bg-attach: fixed;
+}
+
+/* Ensure image layers with the color/gradient underneath */
+body{
+  background: var(--bg);                 /* color or gradient */
+  background-image: var(--bg-image);     /* optional photo */
+  background-size: var(--bg-size);
+  background-position: var(--bg-pos);
+  background-attachment: var(--bg-attach);
+}
+
+/* Small chip buttons used in the sheet */
+.chip{
+  padding:8px 12px;
+  border-radius:12px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border, rgba(255,255,255,.08));
+  font-size:13px;
+}
+#sheet .row.wrap{ flex-wrap: wrap; }
