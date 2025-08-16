@@ -652,3 +652,40 @@ body{
 @supports not (padding-bottom: env(safe-area-inset-bottom)){
   #tabbar{ bottom: 0 !important; }
 }
+/* ---- Force the tab bar to sit flush with the screen bottom (no safe area) ---- */
+#tabbar{
+  height:var(--tabbar-h) !important;
+  padding-bottom:0 !important;
+  bottom:0 !important;
+}
+
+/* If any container added bottom padding for the safe area, neutralize it */
+body, #app, #views, .view{
+  padding-bottom:0 !important;
+  margin-bottom:0 !important;
+}
+/* ---- Make the big “Today’s Tasks” container glassy to match the top cards ---- */
+/* This targets the 3rd card inside #view-today (Resist, Quick, then Today’s Tasks) */
+#view-today > .card:nth-of-type(3){
+  background:rgba(13,19,35,.62) !important;   /* semi-transparent */
+  backdrop-filter:blur(14px);                 /* glass effect */
+  -webkit-backdrop-filter:blur(14px);
+  border-color:rgba(255,255,255,.08) !important;
+}
+/* ---- Reposition the level strip that’s inside the Resistance card ---- */
+/* Assumptions: the thin progress element inside Resistance uses the same .bar/.fill
+   styles as your task progress bars. If your Resistance card has an id (#resistCard),
+   this selector will grab that bar; if your id differs, adjust #resistCard accordingly. */
+
+#view-today{ position:relative; }
+
+/* Pull the first progress bar inside the Resistance card up under the header */
+#resistCard .bar{
+  position:absolute !important;
+  left:24px; right:24px;
+  top:calc(var(--header-h, 88px) + 8px);  /* sits just under your header line */
+  z-index:5;
+}
+
+/* Give the top split some breathing space so cards don’t overlap the lifted strip */
+.top-split{ margin-top:52px !important; }  /* tweak 44–60px to taste */
