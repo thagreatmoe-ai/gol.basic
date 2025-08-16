@@ -741,3 +741,20 @@ body, #app, #views, .view{
   /* keep your existing margin-bottom (usually ~18px) so spacing
      between top cards and Today’s Tasks stays unchanged */
 }
+/* ===== Tighten the space below the XP ribbon ===== */
+
+/* keep the ribbon itself thin */
+#xpRibbon{ height: var(--section-gap); margin:0; padding:0; display:flex; align-items:center; }
+#xpRibbon .bar{ height:6px; margin:0 12px; }
+
+/* reduce the gap below the ribbon to a small, consistent value */
+#xpRibbon + .top-split{
+  margin-top: 8px !important;      /* << shrink the space here */
+  padding-top: 0 !important;        /* guard against padding from earlier styles */
+}
+
+/* make sure the first card isn’t adding its own top margin */
+#xpRibbon + .top-split > .card:first-child,
+#xpRibbon + .top-split > *:first-child{
+  margin-top: 0 !important;
+}
