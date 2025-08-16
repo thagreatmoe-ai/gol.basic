@@ -36,7 +36,10 @@
         <span class="chip">T <span id="tokens">0</span></span>
       </div>
     </header>
-
+<!-- XP strip under the header -->
+<div id="xpStrip" role="progressbar" aria-label="XP to next level">
+  <div class="fill"></div>
+</div>
     <!-- Drawer --------------------------------------------------------->
     <aside id="drawer" aria-label="Navigation">
       <div class="drawer-header">
@@ -80,12 +83,6 @@
             <button id="btnProtect" class="btn alt" type="button" style="margin-top:8px">
               Protect streak today
             </button>
-
-            <!-- subtle XP progress so app.js can update #xpBar -->
-            <div class="bar" style="margin-top:8px">
-              <div class="fill" id="xpBar" style="width:0%"></div>
-            </div>
-          </div>
 
           <!-- Quick Session -->
 <div class="card glass compact" id="quickCard">
