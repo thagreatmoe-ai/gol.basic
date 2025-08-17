@@ -758,3 +758,56 @@ body, #app, #views, .view{
 #xpRibbon + .top-split > *:first-child{
   margin-top: 0 !important;
 }
+/* ===== Old-school layout: NO iPhone safe-area insets (override) ===== */
+/* Put this block at the VERY END of style.css */
+:root{
+  /* pick the tab bar height you want (your earlier build used 64px) */
+  --tabbar-h: 64px;
+}
+
+/* Do NOT reserve extra space for the iOS home indicator */
+body{
+  padding-top: 0 !important;
+  padding-bottom: var(--tabbar-h) !important; /* only the bar height */
+}
+
+/* Optional: mirror the old model’s content spacer */
+#app{ min-height: 100vh; padding-bottom: var(--tabbar-h) !important; }
+
+/* Make sure content itself isn't adding more bottom spacing */
+#views, main, .view{
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Fixed-height tab bar that sits flush at the real bottom */
+#tabbar{
+  position: fixed !important;
+  left: 0; right: 0; bottom: 0 !important;
+  height: var(--tabbar-h) !important;
+  padding-bottom: 0 !important;       /* no extra inner padding */
+  overflow: visible !important;
+}
+
+/* Kill any pseudo “painted safe-area” */
+#tabbar::after{ content: none !important; }
+
+/* Old-school top bar padding (no top safe-area) */
+.topbar{
+  padding: 10px 12px !important;      /* same as your earlier model */
+}
+
+/* Keep the floating + button just above the bar */
+.fab{
+  bottom: calc(var(--tabbar-h) + 16px) !important;
+}
+
+/* If any helper classes tried to add a safe-area spacer, disable them */
+.safe-bottom, .safe-area-spacer, .ios-bottom-spacer{
+  display: none !important;
+}
+
+/* If there are any rules pushing the bar into/under the inset, neutralize them */
+#tabbar{
+  bottom: 0 !important;
+}
