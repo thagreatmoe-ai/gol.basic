@@ -882,3 +882,16 @@ body, #app, #views, .view, main{
   padding-top: calc(env(safe-area-inset-top) + 8px) !important;
   min-height: calc(44px + env(safe-area-inset-top)) !important;
 }
+
+/* ---- Slim XP ribbon under the header ---- */
+#xpRibbon, #xpStrip{
+  height:8px; margin:6px 16px 8px; border-radius:999px;
+  background:rgba(255,255,255,.08); overflow:hidden;
+}
+#xpRibbon .fill, #xpStrip .fill{
+  height:100%; width:0%; transition:width .3s ease;
+  background:linear-gradient(90deg,var(--accent,#7b8cff), #9aa7ff);
+}
+/* keep the gap tight before the top split */
+#xpRibbon + .top-split, #xpStrip + .top-split{ margin-top:8px; }
+/* ---- Task tiles: accent spine on the left ---- */
