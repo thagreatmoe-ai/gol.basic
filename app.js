@@ -988,6 +988,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     if(name==='titles') openTitles();
     if(name==='rewards') openRewards();
     if(name==='theme') openTheme();
+    if(name==='background') openBackground();
     if(name==='backup') openBackup();
     if(name==='settings') openSettings();
   });
