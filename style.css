@@ -851,3 +851,30 @@ body, #app, #views, .view, main{
 #toast{
   bottom: var(--tabbar-h) !important;
 }
+/* === Compact XP strip under header (thin + no extra vertical gap) === */
+#xpStrip{
+  height:6px;
+  margin:8px 12px 8px;        /* small, even spacing above/below */
+  border-radius:999px;
+  background:rgba(255,255,255,.12);
+  overflow:hidden;
+}
+#xpStrip .fill{
+  height:100%;
+  width:0%;                   /* JS sets this */
+  background:linear-gradient(90deg, var(--accent), #9aa7ff);
+  transition:width .25s ease;
+}
+
+/* === Tighten spacing between the XP strip and the top cards === */
+#xpStrip + .top-split{
+  margin-top:8px !important;  /* was 12px; reduce the gap directly below the strip */
+}
+
+/* === Make the big Today’s Tasks card “glassy” like the top cards === */
+#todayCard{
+  background:rgba(16,24,52,.38) !important;        /* same family as .card.glass */
+  border:1px solid rgba(34,48,87,.55) !important;
+  backdrop-filter:blur(14px) saturate(1.15);
+  -webkit-backdrop-filter:blur(14px) saturate(1.15);
+}
