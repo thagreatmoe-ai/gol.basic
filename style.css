@@ -895,3 +895,4 @@ body, #app, #views, .view, main{
 /* keep the gap tight before the top split */
 #xpRibbon + .top-split, #xpStrip + .top-split{ margin-top:8px; }
 /* ---- Task tiles: accent spine on the left ---- */
+#resistCard, #quickCard{ padding:12px; display:flex; flex-direction:column; gap:10px; }
