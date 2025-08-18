@@ -269,8 +269,15 @@ function renderHeader(){
   if(rToggle){ rToggle.checked = !!state.day.resistance; }
   if(rText){   rText.textContent = state.day.resistance ? 'ON' : 'OFF'; }
   if(rBtn){    rBtn.classList.toggle('active', !!state.day.resistance); }
+  updateXpStrip();
 }
-
+// Keep the thin XP strip in sync with current XP
+function updateXpStrip(){
+  const req = xpReq(state.level) || 0;
+  const pct = Math.min(100, req ? (state.xp / req * 100) : 0);
+  const el = document.querySelector('#xpStrip .fill');
+  if (el) el.style.width = pct + '%';
+}
 function latestStatusFor(t){
   const d=todayKey();
   const row=state.history.slice().reverse().find(h=>h.taskId===t.id && h.date===d && (h.flags||[]).some(f=>f==='skip'||f==='postpone'));
