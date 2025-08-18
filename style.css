@@ -882,17 +882,24 @@ body, #app, #views, .view, main{
   padding-top: calc(env(safe-area-inset-top) + 8px) !important;
   min-height: calc(44px + env(safe-area-inset-top)) !important;
 }
+/* ===== Tighten gap below XP strip (final override) ===== */
+/* Make the XP strip itself very compact */
+#xpStrip, #xpRibbon{
+  margin: 6px 16px 6px !important;   /* top 6, sides 16, bottom 6 */
+}
+#xpStrip .bar, #xpRibbon .bar{
+  margin: 0 !important;              /* no extra vertical margin inside */
+}
 
-/* ---- Slim XP ribbon under the header ---- */
-#xpRibbon, #xpStrip{
-  height:8px; margin:6px 16px 8px; border-radius:999px;
-  background:rgba(255,255,255,.08); overflow:hidden;
+/* Make the top cards sit close to the XP strip */
+#xpStrip + .top-split,
+#xpRibbon + .top-split{
+  margin-top: 6px !important;        /* was ~12px; halve it */
+  padding-top: 0 !important;
 }
-#xpRibbon .fill, #xpStrip .fill{
-  height:100%; width:0%; transition:width .3s ease;
-  background:linear-gradient(90deg,var(--accent,#7b8cff), #9aa7ff);
+
+/* Guard: if your markup wraps the XP strip in a container, also tighten
+   the generic .top-split spacing so it never balloons */
+.top-split{
+  margin-top: 8px !important;        /* keep today layout tight */
 }
-/* keep the gap tight before the top split */
-#xpRibbon + .top-split, #xpStrip + .top-split{ margin-top:8px; }
-/* ---- Task tiles: accent spine on the left ---- */
-#resistCard, #quickCard{ padding:12px; display:flex; flex-direction:column; gap:10px; }
