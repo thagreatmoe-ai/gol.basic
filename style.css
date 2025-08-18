@@ -811,3 +811,43 @@ body{
 #tabbar{
   bottom: 0 !important;
 }
+/* === FORCE “OLD SCHOOL” TAB BAR (no iPhone safe area) === */
+/* Put this block at the VERY END of style.css */
+
+:root{
+  /* match your older build’s bar height; change if you prefer */
+  --tabbar-h: 64px;
+}
+
+/* Reserve only the visible bar height for page content (no extra safe-area gap) */
+body, #app, #views, .view, main{
+  padding-bottom: var(--tabbar-h) !important;
+  margin-bottom: 0 !important;
+}
+
+/* Pin the bar to the physical bottom; do NOT grow for the safe area */
+#tabbar{
+  position: fixed !important;
+  left: 0; right: 0; bottom: 0 !important;
+  height: var(--tabbar-h) !important;
+  padding-bottom: 0 !important;
+  overflow: visible;
+}
+
+/* Kill any pseudo “paint the safe area” trick if present */
+#tabbar::after{ display: none !important; }
+
+/* Anything else that tried to honor the safe area at the bottom */
+.safe-bottom, .safe-area-spacer, .ios-bottom-spacer{
+  display: none !important;
+}
+
+/* Keep floating + button comfortably above the bar (no env()) */
+.fab{
+  bottom: calc(var(--tabbar-h) + 16px) !important;
+}
+
+/* Toasts and similar bottom UI should also respect only the bar height */
+#toast{
+  bottom: var(--tabbar-h) !important;
+}
