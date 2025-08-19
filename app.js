@@ -35,6 +35,36 @@ function showToast(msg, type = 'ok'){
   _toastTimer = setTimeout(()=> el.classList.remove('show'), 1600);
 }
 
+// --- Tiny audio helper (short/long beeps) ---
+let _audioCtx;
+function ensureAudio(){
+  if(!_audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC){ _audioCtx = new AC(); }
+  }
+}
+function beep(durationMs=120, freq=880, type='sine', baseVolume=0.08){
+  if(!_audioCtx) return;
+  // Apply global volume (0..1). If 0 → muted.
+  const userVol = Math.max(0, Math.min(1, state?.config?.chimeVolume ?? 0.7));
+  const vol = baseVolume * userVol;
+  if (vol <= 0) return;
+
+  const ctx=_audioCtx;
+  const osc=ctx.createOscillator();
+  const gain=ctx.createGain();
+  osc.type=type;
+  osc.frequency.value=freq;
+  gain.gain.value=vol;
+  osc.connect(gain); gain.connect(ctx.destination);
+  const now=ctx.currentTime;
+  osc.start(now);
+  osc.stop(now + durationMs/1000);
+}
+// wrappers
+function chimeShort(){ beep(120, 880); }           // quick ping
+function chimeLong(){ beep(600, 520, 'sine', 0.1); } // longer, lower tone
+
 // Defaults
 const DEFAULT_LEVELS = [200,300,400,500,600,800,1000,1200,1400,1600,1900,2200,2500];
 // defaults (snippet) — add bgImage to theme
@@ -121,49 +151,79 @@ function progressForRange(t,s,e){
 
 function applyDailyPenalties(day){
   state.tasks.forEach(t=>{
+    if(state.level < (t.levelReq||1)) return; // skip penalties for locked (higher-level) tasks
     if(!isTaskActiveOnDate(t,day)) return;
     if(t.freq!=='daily' && t.freq!=='once') return;
     if(wasSkippedOrPostponed(t.id,day,day)) return;
     const pr=progressForRange(t,day,day);
     if(!pr.done){
-      const loss=penaltyFor(t);
-      if(loss>0){
-        state.tokens -= loss;
-        state.history.push({id:uid(),date:day,taskId:t.id,name:`Penalty: ${t.name}`,base:0,final:0,flags:['penalty','daily'],fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-loss});
-      }
-    }
+  const lossTok = penaltyFor(t);             // tokens lost (unchanged)
+  const xpLoss  = (Number(t.points)||0) * 2; // NEW: lose 2 × base points
+
+  // apply XP loss (affects main + field)
+  adjustMainXP(-xpLoss);
+  adjustFieldXP(t.fieldId, -xpLoss);
+
+  // apply token loss
+  if(lossTok>0) state.tokens -= lossTok;
+
+  // record penalty in history with negative final (so undo works)
+  state.history.push({
+    id: uid(), date: day, taskId: t.id, name: `Penalty: ${t.name}`,
+    base: 0, final: -xpLoss,                    // <-- negative final for XP loss
+    flags: ['penalty','daily'],
+    fieldId: t.fieldId, unit: t.qtyType, amount: 0,
+    tokens: -(lossTok||0)
+  });
+}
   });
   save();
 }
 function applyWeeklyPenalties(day){
   const [s,e]=rangeWeek(day);
   state.tasks.forEach(t=>{
+    if(state.level < (t.levelReq||1)) return; // skip penalties for locked (higher-level) tasks
     if(t.freq!=='weekly' && t.freq!=='custom') return;
     if(wasSkippedOrPostponed(t.id,s,e)) return;
     const pr=progressForRange(t,s,e);
     if(!pr.done){
-      const loss=penaltyFor(t);
-      if(loss>0){
-        state.tokens -= loss;
-        state.history.push({id:uid(),date:e,taskId:t.id,name:`Penalty (week): ${t.name}`,base:0,final:0,flags:['penalty','week'],fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-loss});
-      }
-    }
+  const lossTok = penaltyFor(t);
+  const xpLoss  = (Number(t.points)||0) * 2;
+
+  adjustMainXP(-xpLoss);
+  adjustFieldXP(t.fieldId, -xpLoss);
+  if(lossTok>0) state.tokens -= lossTok;
+
+  state.history.push({
+    id:uid(),date:e,taskId:t.id,name:`Penalty (week): ${t.name}`,
+    base:0,final:-xpLoss,flags:['penalty','week'],
+    fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-(lossTok||0)
+  });
+}
   });
   save();
 }
 function applyMonthlyPenalties(day){
   const [s,e]=rangeMonth(day);
   state.tasks.forEach(t=>{
+    if(state.level < (t.levelReq||1)) return; // skip penalties for locked (higher-level) tasks
     if(t.freq!=='monthly') return;
     if(wasSkippedOrPostponed(t.id,s,e)) return;
     const pr=progressForRange(t,s,e);
     if(!pr.done){
-      const loss=penaltyFor(t);
-      if(loss>0){
-        state.tokens -= loss;
-        state.history.push({id:uid(),date:e,taskId:t.id,name:`Penalty (month): ${t.name}`,base:0,final:0,flags:['penalty','month'],fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-loss});
-      }
-    }
+  const lossTok = penaltyFor(t);
+  const xpLoss  = (Number(t.points)||0) * 2;
+
+  adjustMainXP(-xpLoss);
+  adjustFieldXP(t.fieldId, -xpLoss);
+  if(lossTok>0) state.tokens -= lossTok;
+
+  state.history.push({
+    id:uid(),date:e,taskId:t.id,name:`Penalty (month): ${t.name}`,
+    base:0,final:-xpLoss,flags:['penalty','month'],
+    fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-(lossTok||0)
+  });
+}
   });
   save();
 }
@@ -631,11 +691,11 @@ function undoRecentForTask(taskId){
     }
   }
 
-  if(h.final > 0){
-    adjustMainXP(-h.final);
-    adjustFieldXP(h.fieldId, -h.final);
-  }
-  state.tokens -= tokenDelta;
+  if(h.final !== 0){
+  adjustMainXP(-h.final);
+  adjustFieldXP(h.fieldId, -h.final);
+}
+state.tokens -= tokenDelta;
 
   state.history.splice(i,1);
   save();
@@ -670,10 +730,11 @@ function undoEntry(id){
     }
   }
 
-  if(h.final > 0){
-    adjustMainXP(-h.final);
-    adjustFieldXP(h.fieldId, -h.final);
-  }
+  if(h.final !== 0){
+  // Works for both earned XP (positive) and penalty XP (negative)
+  adjustMainXP(-h.final);
+  adjustFieldXP(h.fieldId, -h.final);
+}
   state.tokens -= tokenDelta;
 
   state.history.splice(i,1);
@@ -784,6 +845,78 @@ function openTasks(addOnly = false){
       freq:freqVal, periodTarget: perTarget
     };
     state.tasks.push(t); save(); openTasks(addOnly); renderToday();
+  };
+}
+function openQuickLog(){
+  const active = state.tasks.filter(t => isTaskActiveToday(t));
+  if (active.length === 0){
+    openSheet(`<div class="row-between">
+        <h3>Log Task</h3>
+        <button class="btn alt small" id="closeSheet">Close</button>
+      </div>
+      <div class="sub small">No tasks due today. Create one?</div>
+      <div style="margin-top:8px"><button class="btn" id="goMakeTask">+ Task</button></div>
+    `);
+    $('#closeSheet').onclick = closeSheet;
+    $('#goMakeTask').onclick = ()=>{ closeSheet(); openTasks(true); };
+    return;
+  }
+
+  openSheet(`
+    <div class="row-between">
+      <h3>Log Task</h3>
+      <button class="btn alt small" id="closeSheet">Close</button>
+    </div>
+
+    <label class="stack small" style="margin-top:8px">
+      <span>Task</span>
+      <select id="qlTask" class="input">
+        ${active.map(t => `<option value="${t.id}" data-qty="${t.qtyType||'times'}">${t.name}</option>`).join('')}
+      </select>
+    </label>
+
+    <label id="qlAmtRow" class="stack small" style="margin-top:8px; display:none">
+      <span>Amount (<span id="qlUnit">min</span>)</span>
+      <input id="qlAmt" class="input small" type="number" value="10" inputmode="numeric" placeholder="10">
+    </label>
+
+    <div class="row gap8" style="margin-top:10px">
+      <button class="btn" id="qlLogBtn">Log</button>
+      <button class="btn alt" id="qlCancel">Cancel</button>
+    </div>
+  `);
+
+  $('#closeSheet').onclick = closeSheet;
+  $('#qlCancel').onclick = closeSheet;
+
+  const sel = $('#qlTask');
+  const amtRow = $('#qlAmtRow');
+  const unit = $('#qlUnit');
+  const amt = $('#qlAmt');
+
+  function syncAmountUI(){
+    const t = state.tasks.find(x => x.id === sel.value);
+    const qt = t?.qtyType || 'times';
+    if (qt === 'times'){
+      amtRow.style.display = 'none';
+    }else{
+      amtRow.style.display = 'block';
+      unit.textContent = qt === 'minutes' ? 'min' : 'h';
+      amt.placeholder = qt === 'minutes' ? '10' : '1';
+      if (!(Number(amt.value) > 0)) amt.value = (qt === 'minutes' ? '10' : '1');
+    }
+  }
+  syncAmountUI();
+  sel.onchange = syncAmountUI;
+
+  $('#qlLogBtn').onclick = ()=>{
+    const t = state.tasks.find(x => x.id === sel.value);
+    if (!t) return;
+    const qt = t.qtyType || 'times';
+    const amount = qt === 'times' ? 1 : Number(amt.value || 0);
+    if (qt !== 'times' && !(amount > 0)){ alert('Enter amount'); return; }
+    completeTask(t.id, amount);
+    closeSheet();
   };
 }
 function openFields(){
@@ -956,11 +1089,55 @@ function openBackup(){
 }
 function openSettings(){
   openSheet(`<div class="row-between"><h3>Settings</h3><button class="btn alt small" id="closeSheet">Close</button></div>
-    <div class="row gap8"><label class="stack small"><span>Level thresholds (comma-separated)</span><input id="lvlStr" class="input" value="${state.levels.join(', ')}"></label><button class="btn" id="btnLevels">Save Levels</button></div>
-    <div class="row gap8" style="margin-top:8px"><label class="stack small"><span>Daily stamina limit (points)</span><input id="stam" class="input small" type="number" value="${state.config.staminaLimit}" inputmode="numeric"></label><label class="stack small"><span>Resistance bonus per hour %</span><input id="rh" class="input small" type="number" value="${state.config.resistHourBonus}" inputmode="numeric"></label></div>`);
+    <div class="row gap8">
+      <label class="stack small"><span>Level thresholds (comma-separated)</span>
+        <input id="lvlStr" class="input" value="${state.levels.join(', ')}">
+      </label>
+      <button class="btn" id="btnLevels">Save Levels</button>
+    </div>
+
+    <div class="row gap8" style="margin-top:8px">
+      <label class="stack small"><span>Daily stamina limit (points)</span>
+        <input id="stam" class="input small" type="number" value="${state.config.staminaLimit}" inputmode="numeric">
+      </label>
+      <label class="stack small"><span>Resistance bonus per hour %</span>
+        <input id="rh" class="input small" type="number" value="${state.config.resistHourBonus}" inputmode="numeric">
+      </label>
+    </div>
+
+    <!-- NEW: chime volume + heads-up toggle -->
+    <div class="row gap8" style="margin-top:8px">
+      <label class="stack small">
+        <span>Session chime volume (%)</span>
+        <input id="chimeVol" class="input small" type="range" min="0" max="100"
+               value="${Math.round((state.config.chimeVolume ?? 0.7)*100)}">
+      </label>
+      <label class="stack small">
+        <span>10-second heads-up</span>
+        <select id="headsUp" class="input small">
+          <option value="on">On</option>
+          <option value="off">Off</option>
+        </select>
+      </label>
+    </div>
+  `);
+
   $('#closeSheet').onclick=closeSheet;
-  $('#btnLevels').onclick=()=>{ const arr=$('#lvlStr').value.split(',').map(s=>Number(s.trim())).filter(Boolean); if(arr.length){ state.levels=arr; save(); alert('Saved'); renderHeader(); } };
+
+  $('#btnLevels').onclick=()=>{
+    const arr=$('#lvlStr').value.split(',').map(s=>Number(s.trim())).filter(Boolean);
+    if(arr.length){ state.levels=arr; save(); alert('Saved'); renderHeader(); }
+  };
+
   $('#rh').onchange=()=>{ state.config.resistHourBonus=Number($('#rh').value||0); save(); };
+
+  // NEW: wire volume + heads-up
+  const v = $('#chimeVol');
+  v.oninput = ()=>{ state.config.chimeVolume = Number(v.value)/100; save(); };
+
+  const hu = $('#headsUp');
+  hu.value = (state.config.prefinishHeadsUp !== false) ? 'on' : 'off';
+  hu.onchange = ()=>{ state.config.prefinishHeadsUp = (hu.value === 'on'); save(); };
 }
 
 // Router / events
@@ -1054,39 +1231,135 @@ $('#btnAddReward')?.addEventListener('click', ()=>{
   if (costEl) costEl.value = '10';
   if (typeEl) typeEl.value = 'irl';
 });
-  // Focus session (toggle only; no preset buttons)
-  let timer=null, left=0;
-  const sessToggle = $('#sessToggle');
-  if(sessToggle){
-    sessToggle.addEventListener('change', ()=>{
-      if(sessToggle.checked){
-        const cm = Number($('#customMin')?.value || 0);
-        if (cm <= 0){ sessToggle.checked = false; return; }
-        left = cm * 60;
-        clearInterval(timer);
-        const label = $('#sessToggleText'); if(label) label.textContent = 'On';
-        const tb = $('#timerBox'); if(tb) tb.textContent = `Session ${cm}m started…`;
-        timer = setInterval(()=>{
-          left--;
-          if(left <= 0){
-            clearInterval(timer); timer=null;
-            if($('#timerBox')) $('#timerBox').textContent='Session complete — log your task now!';
-            sessToggle.checked = false;
-            const label2 = $('#sessToggleText'); if(label2) label2.textContent = 'Off';
-            navigator.vibrate?.(200);
-          }else{
-            const m=Math.floor(left/60), s=left%60;
-            if($('#timerBox')) $('#timerBox').textContent=`Time left ${m}:${String(s).padStart(2,'0')}`;
-          }
-        }, 1000);
-      }else{
-        clearInterval(timer); timer=null;
-        if($('#timerBox')) $('#timerBox').textContent='Session stopped.';
-        const label = $('#sessToggleText'); if(label) label.textContent = 'Off';
-        navigator.vibrate?.(50);
-      }
-    });
+  // Focus session — works with Start/Stop buttons OR a toggle switch
+let sessM = 25, timer = null, left = 0;
+
+// Optional preset buttons (25m / 30m / 50m)
+$$('.sess').forEach(b => b.onclick = () => {
+  sessM = Number(b.dataset.m);
+  const cmEl = $('#customMin');
+  if (cmEl) cmEl.value = '';
+});
+
+function startSession(minutes){
+  const cm = Number(minutes || 0);
+  if (!(cm > 0)) return;
+
+  left = cm * 60;
+  clearInterval(timer);
+
+  const tb = $('#timerBox');
+  if (tb) tb.textContent = `Session ${cm}m started…`;
+
+  // enable audio + short chime
+  ensureAudio();
+  try{ _audioCtx?.resume?.(); }catch(e){}
+  chimeShort();
+
+  let warned10 = false;  // add at top of startSession
+
+timer = setInterval(() => {
+  left--;
+
+  // one-time heads-up at 10s
+  if (state.config?.prefinishHeadsUp !== false && !warned10 && left === 10){
+    showToast('10 seconds left', 'info');
+    warned10 = true;
   }
+
+  if (left <= 0){
+    clearInterval(timer);
+    timer = null;
+    if (tb) tb.textContent = 'Session complete — log your task now!';
+    navigator.vibrate?.(200);
+    chimeLong();
+    const toggle = $('#sessToggle');
+    if (toggle) toggle.checked = false;
+
+    // NEW: open quick log sheet
+    openQuickLog();
+  } else {
+    const m = Math.floor(left/60), s = left % 60;
+    if (tb) tb.textContent = `Time left ${m}:${String(s).padStart(2,'0')}`;
+  }
+}, 1000);
+
+  // If a toggle label exists, update it
+  const lab = $('#sessToggleText');
+  if (lab) lab.textContent = 'Session running…';
+}
+
+function stopSession(message = 'Session stopped.'){
+  clearInterval(timer);
+  timer = null;
+  left = 0;
+
+  const tb = $('#timerBox');
+  if (tb) tb.textContent = message;
+
+  const lab = $('#sessToggleText');
+  if (lab) lab.textContent = 'Session stopped.';
+
+  navigator.vibrate?.(50);
+}
+
+// Bind Start/Stop buttons if they exist
+const startBtn = $('#btnStartSession');
+const stopBtn  = $('#btnStopSession');
+
+if (startBtn && stopBtn){
+  startBtn.addEventListener('click', () => {
+    const cm = Number($('#customMin')?.value || sessM);
+    if (cm <= 0) return;
+    startSession(cm);
+  });
+  stopBtn.addEventListener('click', () => stopSession());
+}
+
+// Robust toggle wiring via event delegation + safer minute parsing
+
+// Helper: read minutes from input or fall back to preset
+function readMinutes(){
+  const raw = ($('#customMin')?.value || '').trim();
+  const n = parseInt(raw, 10);
+  return (Number.isFinite(n) && n > 0) ? n : sessM;
+}
+
+// Initialize label if toggle exists (doesn't matter when it mounts)
+const initSessLabel = ()=>{
+  const lab = $('#sessToggleText');
+  if (lab) lab.textContent = 'Session stopped.';
+};
+initSessLabel();
+
+// Delegate change events so it still works if the toggle is re-rendered
+document.body.addEventListener('change', (ev)=>{
+  const t = ev.target;
+  if (!t || t.id !== 'sessToggle') return;
+
+  if (t.checked){
+    const cm = readMinutes();
+    if (!(cm > 0)){
+      t.checked = false;
+      return;
+    }
+    startSession(cm);
+  } else {
+    stopSession();
+  }
+});
+
+// (Nice to have) Pressing Enter in the minutes field starts the session
+$('#customMin')?.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter'){
+    const toggle = $('#sessToggle');
+    const cm = readMinutes();
+    if (cm > 0){
+      if (toggle) toggle.checked = true;    // keep UI in sync
+      startSession(cm);
+    }
+  }
+});
 
   // Prestige
   $('#btnPrestige')?.addEventListener('click', ()=>{
