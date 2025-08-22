@@ -86,6 +86,16 @@ const defaultState = {
 };
 let state = Object.assign({}, defaultState, load());
 
+// Normalize today's structure so pointsToday is always a number
+state.day = state.day || { date: todayKey(), resistance: false, pointsToday: 0 };
+
+// Carry over legacy `points` if present, then ensure it’s numeric
+if (state.day.pointsToday == null){
+  state.day.pointsToday = Number(state.day.points || 0);
+}
+// Optional: remove the old key to avoid future confusion
+if ('points' in state.day) delete state.day.points;
+
 // Guard: if previous builds allowed negatives, snap back to 0
 state.tokens = Math.max(0, Number(state.tokens) || 0);
 
@@ -133,7 +143,12 @@ function monthIndex(d){ const dt=new Date(d); return dt.getFullYear()*12 + dt.ge
 function rangeWeek(d){ const dt=new Date(d); const w=(dt.getDay()+6)%7; const s=new Date(dt); s.setDate(dt.getDate()-w); const e=new Date(s); e.setDate(s.getDate()+6); return [s.toISOString().slice(0,10), e.toISOString().slice(0,10)]; }
 function rangeMonth(d){ const dt=new Date(d); const s=new Date(dt.getFullYear(),dt.getMonth(),1); const e=new Date(dt.getFullYear(),dt.getMonth()+1,0); return [s.toISOString().slice(0,10), e.toISOString().slice(0,10)]; }
 function wasSkippedOrPostponed(id,s,e){
-  return state.history.some(h=>h.taskId===id && h.date>=s && h.date<=e && (h.flags||[]).some(f=>f==='skip'||f==='postpone'));
+  // also treat manual "failed" as handled for this period
+  return state.history.some(h =>
+    h.taskId===id &&
+    h.date>=s && h.date<=e &&
+    (h.flags||[]).some(f => f==='skip' || f==='postpone' || f==='failed')
+  );
 }
 function tokenRewardFor(t){ return Number(t.tokenReward ?? Math.floor((t.points||0)/5)); }
 function penaltyFor(t){ return tokenRewardFor(t)*3; }
@@ -163,21 +178,23 @@ function applyDailyPenalties(day){
       const lossTok = penaltyFor(t);             // tokens to try to lose
       const xpLoss  = (Number(t.points)||0) * 2; // lose 2 × base points
 
-      // apply XP loss (affects main + field)
-      adjustMainXP(-xpLoss);
-      adjustFieldXP(t.fieldId, -xpLoss);
+      // apply XP loss (affects main + field) — capture actual applied amounts
+const appliedMain  = adjustMainXP(-xpLoss);     // negative or 0
+const appliedField = adjustFieldXP(t.fieldId, -xpLoss); // negative or 0
 
-      // apply token loss safely (never below 0)
-      const spent = lossTok>0 ? spendTokensSafe(lossTok) : 0;
+// apply token loss safely (never below 0)
+const spent = lossTok>0 ? spendTokensSafe(lossTok) : 0;
 
-      // record penalty in history with negative final and actual token spend
-      state.history.push({
-        id: uid(), date: day, taskId: t.id, name: `Penalty: ${t.name}`,
-        base: 0, final: -xpLoss,
-        flags: ['penalty','daily'],
-        fieldId: t.fieldId, unit: t.qtyType, amount: 0,
-        tokens: -spent
-      });
+// record penalty using the actual applied amounts
+state.history.push({
+  id: uid(), date: day, taskId: t.id, name: `Penalty: ${t.name}`,
+  base: 0,
+  final: appliedMain,            // e.g., -5 (not -20)
+  fieldFinal: appliedField,      // store field delta separately
+  flags: ['penalty','daily'],
+  fieldId: t.fieldId, unit: t.qtyType, amount: 0,
+  tokens: -spent
+});
     }
   });
   save();
@@ -193,17 +210,17 @@ function applyWeeklyPenalties(day){
       const lossTok = penaltyFor(t);
       const xpLoss  = (Number(t.points)||0) * 2;
 
-      adjustMainXP(-xpLoss);
-      adjustFieldXP(t.fieldId, -xpLoss);
-
-      // safe token deduction
-      const spent = lossTok>0 ? spendTokensSafe(lossTok) : 0;
-
-      state.history.push({
-        id:uid(),date:e,taskId:t.id,name:`Penalty (week): ${t.name}`,
-        base:0,final:-xpLoss,flags:['penalty','week'],
-        fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-spent
-      });
+      const appliedMain  = adjustMainXP(-xpLoss);
+const appliedField = adjustFieldXP(t.fieldId, -xpLoss);
+const spent = lossTok>0 ? spendTokensSafe(lossTok) : 0;
+state.history.push({
+  id:uid(),date:e,taskId:t.id,name:`Penalty (week): ${t.name}`,
+  base:0,
+  final: appliedMain,
+  fieldFinal: appliedField,
+  flags:['penalty','week'],
+  fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-spent
+});
     }
   });
   save();
@@ -219,17 +236,17 @@ function applyMonthlyPenalties(day){
       const lossTok = penaltyFor(t);
       const xpLoss  = (Number(t.points)||0) * 2;
 
-      adjustMainXP(-xpLoss);
-      adjustFieldXP(t.fieldId, -xpLoss);
-
-      // safe token deduction
-      const spent = lossTok>0 ? spendTokensSafe(lossTok) : 0;
-
-      state.history.push({
-        id:uid(),date:e,taskId:t.id,name:`Penalty (month): ${t.name}`,
-        base:0,final:-xpLoss,flags:['penalty','month'],
-        fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-spent
-      });
+      const appliedMain  = adjustMainXP(-xpLoss);
+const appliedField = adjustFieldXP(t.fieldId, -xpLoss);
+const spent = lossTok>0 ? spendTokensSafe(lossTok) : 0;
+state.history.push({
+  id:uid(),date:e,taskId:t.id,name:`Penalty (month): ${t.name}`,
+  base:0,
+  final: appliedMain,
+  fieldFinal: appliedField,
+  flags:['penalty','month'],
+  fieldId:t.fieldId,unit:t.qtyType,amount:0,tokens:-spent
+});
     }
   });
   save();
@@ -239,40 +256,89 @@ function applyMonthlyPenalties(day){
 function xpReq(l){ return state.levels[l-1] || state.levels.at(-1); }
 function fieldReq(l){ return 200 + (l-1)*100; }
 function getField(id){ return state.fields.find(f=>f.id===id); }
+// Returns the ACTUAL applied delta (may be less negative when flooring at 0)
 function adjustMainXP(d){
-  if(d>0){
-    state.xp+=d;
-    while(state.level<=state.levels.length && state.xp>=xpReq(state.level)){
-      state.xp-=xpReq(state.level); state.level++;
+  let applied = 0;
+
+  if (d > 0){
+    state.xp += d;
+    applied = d;
+    while (state.level <= state.levels.length && state.xp >= xpReq(state.level)){
+      state.xp -= xpReq(state.level);
+      state.level++;
     }
-  }else if(d<0){
-    let k=-d;
-    while(k>0){
-      if(state.xp>=k){ state.xp-=k; k=0; break; }
-      else{
-        k-=state.xp;
-        if(state.level>1){ state.level--; state.xp=xpReq(state.level)-1; }
-        else{ state.xp=0; k=0; }
+  } else if (d < 0){
+    let k = -d; // amount we want to remove
+    while (k > 0){
+      if (state.xp >= k){
+        state.xp -= k;
+        applied -= k;
+        k = 0;
+        break;
+      } else {
+        // remove what's left at this level
+        applied -= state.xp;
+        k -= state.xp;
+        state.xp = 0;
+
+        if (state.level > 1){
+          state.level--;
+          state.xp = xpReq(state.level) - 1; // step down; next loop will remove further if k > 0
+        } else {
+          // hit floor (L1, 0 XP)
+          k = 0;
+        }
       }
     }
   }
+
+  return applied;
 }
-function adjustFieldXP(id,d){
-  const f=getField(id); if(!f) return;
-  if(d>0){
-    f.xp+=d; while(f.xp>=fieldReq(f.level)){ f.xp-=fieldReq(f.level); f.level++; }
-  }else if(d<0){
-    let k=-d;
-    while(k>0){
-      if(f.xp>=k){ f.xp-=k; k=0; break; }
-      else{
-        k-=f.xp;
-        if(f.level>1){ f.level--; f.xp=fieldReq(f.level)-1; }
-        else{ f.xp=0; k=0; }
+
+function adjustFieldXP(id, d){
+  const f = getField(id); 
+  if (!f) return 0;
+
+  let applied = 0;
+
+  if (d > 0){
+    f.xp += d;
+    applied = d;
+    // level up as needed
+    while (f.xp >= fieldReq(f.level)){
+      f.xp -= fieldReq(f.level);
+      f.level++;
+    }
+  } else if (d < 0){
+    let k = -d; // amount to remove
+    while (k > 0){
+      if (f.xp >= k){
+        f.xp -= k;
+        applied -= k;
+        k = 0;
+        break;
+      } else {
+        // remove what's left at this level
+        applied -= f.xp;
+        k -= f.xp;
+        f.xp = 0;
+
+        if (f.level > 1){
+          f.level--;
+          // mirror the main XP behavior when stepping down a level
+          f.xp = fieldReq(f.level) - 1;
+        } else {
+          // hit the floor (level 1, 0 XP)
+          k = 0;
+        }
       }
     }
   }
+
+  return applied;
 }
+
+ 
 function finalPoints(base){
   const a=1+(state.titles.filter(t=>t.scope==='always').reduce((x,y)=>x+y.boost,0))/100;
   const r=state.day.resistance?1+state.config.resistHourBonus/100:1;
@@ -346,29 +412,38 @@ function updateXpStrip(){
   if (el) el.style.width = pct + '%';
 }
 function latestStatusFor(t){
-  const d=todayKey();
-  const row=state.history.slice().reverse().find(h=>h.taskId===t.id && h.date===d && (h.flags||[]).some(f=>f==='skip'||f==='postpone'));
+  const d = todayKey();
+  const row = state.history.slice().reverse().find(h =>
+    h.taskId===t.id && h.date===d &&
+    (h.flags||[]).some(f => f==='skip' || f==='postpone' || f==='failed')
+  );
   if(!row) return null;
-  return (row.flags||[]).includes('skip')?'skip':'postpone';
+  if((row.flags||[]).includes('failed'))   return 'failed';
+  if((row.flags||[]).includes('skip'))     return 'skip';
+  if((row.flags||[]).includes('postpone')) return 'postpone';
+  return null;
 }
 
 function renderTaskCard({t, p, status}){
   const el = document.createElement('div');
   el.className = 'item'
-    + (p.done ? ' done' : '')
-    + (status==='skip' ? ' skipped' : '')
-    + (status==='postpone' ? ' postponed' : '');
+  + (p.done ? ' done' : '')
+  + (status==='skip' ? ' skipped' : '')
+  + (status==='postpone' ? ' postponed' : '')
+  + (status==='failed' ? ' failed' : '');
+
+const canAct = !(p.done || status==='skip' || status==='postpone' || status==='failed');
 
   const unitTxt = (t.qtyType==='minutes'?'min':(t.qtyType==='hours'?'h':'times'));
-  const tokensUnit = Math.floor((t.points||0)/5);
-  const penaltyTok = tokensUnit * 3;
+  const tokensUnit = tokenRewardFor(t);
+const penaltyTok = penaltyFor(t);
   const fieldName = getField(t.fieldId)?.name || '—';
-  const canAct = !(p.done || status==='skip' || status==='postpone');
 
   const badge =
-    p.done ? '<span class="badge success">Completed</span>' :
-    status==='skip' ? '<span class="badge skip">Skipped</span>' :
-    status==='postpone' ? '<span class="badge postpone">Postponed</span>' : '';
+  p.done ? '<span class="badge success">Completed</span>' :
+  status==='skip' ? '<span class="badge skip">Skipped</span>' :
+  status==='postpone' ? '<span class="badge postpone">Postponed</span>' :
+  status==='failed' ? '<span class="badge danger">Failed</span>' : '';
 
   const progressPct = p.target ? Math.min(100, (p.val/p.target*100)) : 0;
 
@@ -396,10 +471,11 @@ function renderTaskCard({t, p, status}){
         <label class="stack small" style="display:flex;flex-direction:column;gap:6px;">
           <span style="font-size:var(--small);color:var(--muted)">Action</span>
           <select class="input small statusSel" data-id="${t.id}">
-            <option value="done">Done</option>
-            <option value="skip">Skip</option>
-            <option value="postpone">Postpone</option>
-          </select>
+  <option value="done">Done</option>
+  <option value="skip">Skip</option>
+  <option value="postpone">Postpone</option>
+  <option value="failed">Failed</option>
+</select>
         </label>
 
         ${ t.qtyType==='times' ? '' : `
@@ -432,7 +508,8 @@ function renderTaskCard({t, p, status}){
         completeTask(t.id, amt);
       }
     }else if(sel==='skip'){ markStatus(t.id,'skip'); }
-     else if(sel==='postpone'){ markStatus(t.id,'postpone'); }
+ else if(sel==='postpone'){ markStatus(t.id,'postpone'); }
+ else if(sel==='failed'){ markStatus(t.id,'failed'); }
   };
 
   const u = el.querySelector('.undoOne');
@@ -458,16 +535,17 @@ function renderToday(){
   const list=$('#todayTasks'); if(!list) return;
   list.innerHTML='';
   const items=state.tasks.filter(t=>isTaskActiveToday(t));
-  const A=[], S=[], P=[], D=[];
-  items.forEach(t=>{
-    const p=progressNow(t), status=latestStatusFor(t);
-    const d={t,p,status};
-    if(status==='skip') S.push(d);
-    else if(status==='postpone') P.push(d);
-    else if(p.done) D.push(d);
-    else A.push(d);
-  });
-  [A,S,P,D].forEach(g=>g.forEach(d=>list.appendChild(renderTaskCard(d))));
+  const A=[], F=[], S=[], P=[], D=[];
+items.forEach(t=>{
+  const p=progressNow(t), status=latestStatusFor(t);
+  const d={t,p,status};
+  if(status==='failed') F.push(d);
+  else if(status==='skip') S.push(d);
+  else if(status==='postpone') P.push(d);
+  else if(p.done) D.push(d);
+  else A.push(d);
+});
+[A,F,S,P,D].forEach(g=>g.forEach(d=>list.appendChild(renderTaskCard(d))));
   if(items.length===0){
     const e=document.createElement('div'); e.className='sub small'; e.textContent='No tasks due today.'; list.appendChild(e);
   }
@@ -679,11 +757,77 @@ function completeTask(taskId, amountOr1){
   renderAll();
   showToast('Task logged', 'ok');
 }
+// helper: remove any "done" entries for THIS TASK today (undo safely)
+function _revertTodaysDoneForTask(t){
+  const d = todayKey();
+  for(let i = state.history.length - 1; i >= 0; i--){
+    const h = state.history[i];
+    if(h.taskId===t.id && h.date===d && (h.final||0) > 0){
+      const tokenDelta = h.tokens || 0; // positive earned tokens
+      if(tokenDelta > 0 && (state.tokens - tokenDelta) < 0){
+        const need = tokenDelta - state.tokens;
+        autoRefundPurchases(need);
+        if(state.tokens - tokenDelta < 0){
+          // can't safely undo this entry; skip it
+          continue;
+        }
+      }
+      adjustMainXP(-h.final);
+      adjustFieldXP(h.fieldId, -h.final);
+      state.tokens -= tokenDelta;
+      state.history.splice(i,1);
+    }
+  }
+}
+
 function markStatus(taskId, kind){
-  const t=state.tasks.find(x=>x.id===taskId); if(!t) return;
-  state.history.push({id:uid(), date:todayKey(), taskId:t.id, name:`${kind==='skip'?'Skipped':'Postponed'}: ${t.name}`, base:0, final:0, flags:[kind], fieldId:t.fieldId, unit:t.qtyType, amount:0, tokens:0});
-  save();
-  renderAll();
+  const t = state.tasks.find(x=>x.id===taskId); if(!t) return;
+
+  if(kind === 'failed'){
+    // 1) ensure task is "undone" for today
+    _revertTodaysDoneForTask(t);
+
+    // 2) apply penalties immediately (same math as rollover)
+const lossTok = penaltyFor(t);
+const xpLoss  = (Number(t.points)||0) * 2;
+
+// capture actual applied deltas
+const appliedMain  = adjustMainXP(-xpLoss);
+const appliedField = adjustFieldXP(t.fieldId, -xpLoss);
+
+const spent = lossTok > 0 ? spendTokensSafe(lossTok) : 0;
+
+state.history.push({
+  id: uid(),
+  date: todayKey(),
+  taskId: t.id,
+  name: `Failed: ${t.name}`,
+  base: 0,
+  final: appliedMain,       // actual applied (likely -5 in your example)
+  fieldFinal: appliedField, // for precise field undo
+  tokens: -spent,
+  flags: ['penalty','failed'],
+  fieldId: t.fieldId,
+  unit: t.qtyType,
+  amount: 0
+});
+
+    save(); renderAll();
+    showToast('Marked failed — penalties applied', 'danger');
+    return;
+  }
+
+  // skip / postpone (no penalties)
+  state.history.push({
+    id: uid(),
+    date: todayKey(),
+    taskId: t.id,
+    name: `${kind==='skip'?'Skipped':'Postponed'}: ${t.name}`,
+    base: 0, final: 0, tokens: 0,
+    flags: [kind],
+    fieldId: t.fieldId, unit: t.qtyType, amount: 0
+  });
+  save(); renderAll();
   showToast('Undone', 'info');
 }
 function undoRecentForTask(taskId){
@@ -708,7 +852,8 @@ function undoRecentForTask(taskId){
 
   if(h.final !== 0){
   adjustMainXP(-h.final);
-  adjustFieldXP(h.fieldId, -h.final);
+  const df = (h.fieldFinal != null) ? -h.fieldFinal : -h.final;
+  adjustFieldXP(h.fieldId, df);
 }
 state.tokens -= tokenDelta;
 
@@ -746,9 +891,9 @@ function undoEntry(id){
   }
 
   if(h.final !== 0){
-  // Works for both earned XP (positive) and penalty XP (negative)
   adjustMainXP(-h.final);
-  adjustFieldXP(h.fieldId, -h.final);
+  const df = (h.fieldFinal != null) ? -h.fieldFinal : -h.final;
+  adjustFieldXP(h.fieldId, df);
 }
   state.tokens -= tokenDelta;
 
@@ -1426,13 +1571,4 @@ function openSheet(html){ const s=$('#sheet'); s.innerHTML=html; s.classList.add
 function closeSheet(){ $('#sheet').classList.remove('open'); document.body.classList.remove('addMode'); }
 function _toHexOrDefault(v){
   return (typeof v==='string' && v.startsWith('#') && (v.length===7||v.length===4)) ? v : '#0b0f1a';
-}
-function updateXpStrip(){
-  const bar = document.querySelector('#xpStrip .fill');
-  if (!bar) return;
-
-  // Assume state.xp is current XP within the level and state.levels holds per-level caps
-  const needed = state.levels?.[state.level - 1] || 1;
-  const pct = Math.max(0, Math.min(100, (state.xp / needed) * 100));
-  bar.style.width = pct + '%';
 }
